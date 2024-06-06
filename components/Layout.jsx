@@ -1,32 +1,50 @@
-import React, { useState } from "react";
+import React, { useReducer, useState } from "react";
 import Sidebar from "./Sidebar";
 import Table from "./Table";
 import {data, initialColumns} from "./data";
 import DynamicCol from "./DynamicCol";
 import Filters from "./Filters";
+import helperFunctions from "../helper"
+
+const {filterDataByDate, filterDataByColumns} = helperFunctions
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'changeColumn':
+      const newData = filterDataByColumns(action.payload.data, action.payload.filteredCols)
+      return newData;
+    case 'scheduleDate':
+      return filterDataByDate(action.payload.data, action.payload.filter);
+    default:
+      return state;
+  }
+};
 
 
 const Layout = () => {
     const [columns, setColumns] = useState(initialColumns);
     const [colDropdown, setColDropdown] = useState(false)
-    const [filteredData, setFilteredData] = useState(data);
-    
+    const [showFilter, setShowFilter] = useState(false);
+
+    const [filteredData, dispatch] = useReducer(reducer, data);
+    // console.log(helperFunctions)
+
+    const handleDateFilterChange = (filter) => {
+      // console.log(filter);
+      dispatch({ type: 'scheduleDate', payload: { data, filter } });
+    };
+
     const updateColumns = (filteredCols) => {
         setColumns(filteredCols);
       
         // Filter the data based on the selected columns
-        const newData = data.map((row) =>
-          filteredCols.reduce((acc, key) => {
-            if (row[key] !== undefined) {
-              acc[key] = row[key];
-            }
-            return acc;
-          }, {})
-        );
-        setFilteredData(newData);
+        // const newData = filterDataByColumns(data, filteredCols)
+        // setFilteredData(newData);
+
+        dispatch({ type: 'changeColumn', payload: { data, filteredCols } });
       };
 
-  console.log(filteredData);
+  // console.log(filteredData);
   return (
     <div className="h-screen flex flex-row justify-start">
       <Sidebar />
@@ -64,9 +82,10 @@ const Layout = () => {
         </div>
         <div className="flex justify-between">
           {/* Add filter btn */}
-          <div className="flex items-start justify-start p-4">
+          <div className="flex items-start justify-start p-4 relative">
             <button
               id="dropdownDefault"
+              onClick={()=>setShowFilter(!showFilter)}
               data-dropdown-toggle="dropdown"
               class="text-text bg-gray-200 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               type="button"
@@ -103,7 +122,7 @@ const Layout = () => {
               </svg>
             </button>
 
-            <Filters/>
+            {showFilter &&<Filters handleDateFilterChange={handleDateFilterChange}/>}
           </div>
 
           {/* Search */}
